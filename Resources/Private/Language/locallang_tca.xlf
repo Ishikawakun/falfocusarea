@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<xliff version="1.0">
+	<file source-language="en" datatype="plaintext" original="messages" product-name="tuenkerswebsite" date="2014-12-18T16:06:06+01:00">
+		<header/>
+		<body>
+			<trans-unit id="tabs.focalpoint">
+				<source>Fokuspunkt</source>
+			</trans-unit>
+
+			<trans-unit id="palette.focalpoint_x">
+				<source>Horizontale Grenzen</source>
+			</trans-unit>
+
+			<trans-unit id="palette.focalpoint_y">
+				<source>Vertikale Grenzen</source>
+			</trans-unit>
+
+			<trans-unit id="sys_file_metadata.focal_x_min">
+				<source>X-Achsen Startpunkt</source>
+			</trans-unit>
+
+			<trans-unit id="sys_file_metadata.focal_x_max">
+				<source>X-Achsen Endpunkt</source>
+			</trans-unit>
+
+			<trans-unit id="sys_file_metadata.focal_y_min">
+				<source>Y-Achsen Startpunkt</source>
+			</trans-unit>
+
+			<trans-unit id="sys_file_metadata.focal_y_max">
+				<source>Y-Achsen Endpunkt</source>
+			</trans-unit>
+
+			<trans-unit id="sys_file_metadata.focal_point_editor">
+				<source>Fokuspunkt bearbeiten</source>
+			</trans-unit>
+		</body>
+	</file>
+</xliff>
