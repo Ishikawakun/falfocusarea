@@ -10,6 +10,11 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
     /**
+     * @var \Ishikawakun\Falfocusarea\Service\FocusAlgorithmService
+     */
+    protected $focusAlgorithmService = NULL;
+
+    /**
      * This method actually does the processing of files locally
      *
      * Takes the original file (for remote storages this will be fetched from the remote server),
@@ -45,97 +50,30 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
 
         $options = $this->getConfigurationForImageCropScaleMask($targetFile, $gifBuilder);
 
-        // Focal point handling starts here
-        if (isset($GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) {
-            // Set debug flag
-            $gfx_advanced_debug = TRUE;
-            // Get logger instance
-            $logger = NULL;
-            if ($gfx_advanced_debug) {
-                /** @var \TYPO3\CMS\Core\Log\Logger $logger */
-                $logger = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\CMS\Core\Log\LogManager')->getLogger(__CLASS__);
-            }
-
-            // Get file metadata
-            $fileMetaData = $sourceFile->_getMetaData();
-
-            $logger->info('Configuration Array: ' . LogUtility::array2string($configuration));
-
-            // Check meta data width and height
-            if (!isset($fileMetaData['width']) || !isset($fileMetaData['height'])) {
-                if ($logger) {
-                    // Generate meta data debug output
-                    $width = isset($fileMetaData['width']) ? $fileMetaData['width'] : 0;
-                    $height = isset($fileMetaData['width']) ? $fileMetaData['height'] : 0;
-                    $logger->info(sprintf('CSM - Size information of image "%s" missing (w: %d, h: %d)', $originalFileName, $width, $height));
-                }
-            }
-
-            // Check focus area corners in metadata and fallback if necessary
-            $focusArea = array(
-                'focal_x_min' => isset($fileMetaData['focal_x_min']) ? $fileMetaData['focal_x_min'] : 0,
-                'focal_x_max' => isset($fileMetaData['focal_x_max']) ? $fileMetaData['focal_x_max'] : 0,
-                'focal_y_min' => isset($fileMetaData['focal_y_min']) ? $fileMetaData['focal_y_min'] : 0,
-                'focal_y_max' => isset($fileMetaData['focal_y_max']) ? $fileMetaData['focal_y_max'] : 0,
-            );
-
-            // Calculate focus area side lengths
-            $focusArea['width'] = $focusArea['focal_x_max'] - $focusArea['focal_x_min'];
-            $focusArea['height'] = $focusArea['focal_y_max'] - $focusArea['focal_y_min'];
-
-            // Check if focus area is usable (arbitrary minimal condition)
-            if ($focusArea['width'] <= 10 || $focusArea['height'] <= 10) {
-                if ($logger) {
-                    $logger->info(sprintf('CSM - Focus area fallback for image "%s"', $originalFileName));
-                }
-
-                // Fallback if necessary
-
-                // TODO: design fallback mechanism (weighted something something)
-            } else {
-                // Interpret rescaling case based on configuration data
-                if ($logger) {
-                    $logger->info(sprintf('CSM - Configuration data (w: %d, h: %d)', $configuration['width'], $configuration['height']));
-                }
-
-                if ($configuration['width'] !== 0 && $configuration['height'] !== 0) {
-
-                    // Case A: target width and target height present
-
-                    // |-> Aa: one or both target values < corresponding focus area value
-
-                } elseif ($configuration['width'] !== 0 && $configuration ['height'] === 0) {
-
-                    if ($logger) {
-                        $logger->info(sprintf('CSM - Height is actually 0'));
-                    }
-
-                    // Case B: only target width present
-
-                    // |-> Ba: target value < corresponding focus area value
-
-                } elseif ($configuration['width'] === 0 && $configuration['height'] !== 0) {
-
-                    // Case C: only target height present
-
-                    // |-> Ca: target value < corresponding focus area value
-
-                }
-            }
-        }
-
         // Normal situation (no masking)
         if (!(is_array($configuration['maskImages']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['im'])) {
-            // the result info is an array with 0=width,1=height,2=extension,3=filename
-            $result = $gifBuilder->imageMagickConvert(
-                $originalFileName,
-                $configuration['fileExtension'],
-                $configuration['width'],
-                $configuration['height'],
-                $configuration['additionalParameters'],
-                $configuration['frame'],
-                $options
-            );
+            // Focal point handling starts here
+            if (isset($GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) {
+                // Make instance if necessary
+                if ($this->focusAlgorithmService === NULL) {
+                    $this->focusAlgorithmService = GeneralUtility::makeInstance('Ishikawakun\\Falfocusarea\\Service\\FocusAlgorithmService');
+                }
+                // Get file metadata
+                $fileData = $sourceFile->getProperties();
+                // the result info is an array with 0=width,1=height,2=extension,3=filename
+                $result = $this->focusAlgorithmService->buildResult($originalFileName, $sourceFile, $targetFile, $configuration, $fileData);
+            } else {
+                // the result info is an array with 0=width,1=height,2=extension,3=filename
+                $result = $gifBuilder->imageMagickConvert(
+                    $originalFileName,
+                    $configuration['fileExtension'],
+                    $configuration['width'],
+                    $configuration['height'],
+                    $configuration['additionalParameters'],
+                    $configuration['frame'],
+                    $options
+                );
+            }
         } else {
             $targetFileName = $this->getFilenameForImageCropScaleMask($task);
             $temporaryFileName = $gifBuilder->tempPath . $targetFileName;
