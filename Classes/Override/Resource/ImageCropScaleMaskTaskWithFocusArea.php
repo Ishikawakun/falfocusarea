@@ -23,7 +23,7 @@ class ImageCropScaleMaskTaskWithFocusArea extends Resource\Processing\ImageCropS
             'focal_x_max' => isset($fileMetaData['focal_x_max']) ? $fileMetaData['focal_x_max'] : 0,
             'focal_y_min' => isset($fileMetaData['focal_y_min']) ? $fileMetaData['focal_y_min'] : 0,
             'focal_y_max' => isset($fileMetaData['focal_y_max']) ? $fileMetaData['focal_y_max'] : 0,
-            'debug' => 2,
+            'debug' => 1,
         );
 
         return array_merge(

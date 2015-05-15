@@ -133,11 +133,6 @@ class FocusAlgorithmService implements SingletonInterface {
                     }
                 }
 
-                // FIXME: Escape if upscale for NOW
-                if ($preferredScale > 1) {
-                    return NULL;
-                }
-
                 $scaleAndCrop = $this->findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $width, $height);
 
                 return $this->executeImageMagickCropResize($originalFileName, (int)($scaleAndCrop['targetScale'] * $width),
