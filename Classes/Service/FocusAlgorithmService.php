@@ -118,7 +118,7 @@ class FocusAlgorithmService implements SingletonInterface {
             }
 
             if ($configuration['width'] !== 0 && $configuration['height'] !== 0) {
-                return $this->executeImageMagickCropResize($originalFileName, $configuration['width'],
+                return $this->executeImageMagickCropResize($originalFileName, $configuration['width'], $configuration['height'], $configuration['width'],
                     $configuration['height'], $configuration['width'], $configuration['height'], 0, 0);
             }
         } else {
@@ -156,7 +156,7 @@ class FocusAlgorithmService implements SingletonInterface {
 
                 $scaleAndCrop = $this->findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $width, $height);
 
-                return $this->executeImageMagickCropResize($originalFileName, (int)($scaleAndCrop['targetScale'] * $width),
+                return $this->executeImageMagickCropResize($originalFileName, $configuration['width'], $configuration['height'], (int)($scaleAndCrop['targetScale'] * $width),
                     (int)($scaleAndCrop['targetScale'] * $height), $configuration['width'], $configuration['height'],
                     $scaleAndCrop['offsetX'], $scaleAndCrop['offsetY']);
             }
@@ -324,8 +324,11 @@ class FocusAlgorithmService implements SingletonInterface {
      *
      * @return array
      */
-    protected function executeImageMagickCropResize($input, $scaleWidth, $scaleHeight, $cropWidth, $cropHeight, $cropOffsetX, $cropOffsetY) {
-        $params = '-resize "' . $scaleWidth . 'x' . $scaleHeight . '^" -crop ' . $cropWidth . 'x' . $cropHeight . '+' . $cropOffsetX . '+' . $cropOffsetY . ' +repage';
+    protected function executeImageMagickCropResize($input, $targetWidth, $targetHeight, $scaleWidth, $scaleHeight, $cropWidth, $cropHeight, $cropOffsetX, $cropOffsetY) {
+        $paramsTemp = '-resize "' . $scaleWidth . 'x' . $scaleHeight . '^" -crop ' . $cropWidth . 'x' . $cropHeight . '+' . $cropOffsetX . '+' . $cropOffsetY . ' +repage';
+        $paramsFinal = '-resize "' . $targetWidth . 'x' . $targetHeight . '" -background transparent -gravity center -extent "' . $targetWidth . 'x' . $targetHeight . '" -compose Copy_Opacity -composite ';
+
+        $params = $paramsTemp . $paramsFinal;
 
         /**
          * Copied code from TYPO3\CMS\Core\Imaging\GraphicalFunctions->imageMagickConvert()
@@ -350,13 +353,23 @@ class FocusAlgorithmService implements SingletonInterface {
                     $theOutputName = GeneralUtility::shortMD5($params . $input . filemtime($input) . '[' . 0 . ']');
                 }
                 $this->gifBuilder->createTempSubDir('pics/');
+                $this->gifBuilder->createTempSubDir('pics/temp/');
+                // Temp output file
+                $tempFileName = $this->gifBuilder->absPrefix . $this->gifBuilder->tempPath . 'pics/temp/' . $this->gifBuilder->filenamePrefix . $theOutputName . '.' . $newExt;
+                if ($this->gifBuilder->dontCheckForExistingTempFile || !$this->gifBuilder->file_exists_typo3temp_file($tempFileName, $input)) {
+                    $status = $this->gifBuilder->imageMagickExec($input, $tempFileName, $paramsTemp, 0);
+                    if ($this->logger) {
+                        $this->logger->info(sprintf('CSM - Execute (%s) returned (%s)', $paramsTemp, $status));
+                    }
+                }
+                // Real output file
                 $output = $this->gifBuilder->absPrefix . $this->gifBuilder->tempPath . 'pics/' . $this->gifBuilder->filenamePrefix . $theOutputName . '.' . $newExt;
                 // Register temporary filename:
                 $GLOBALS['TEMP_IMAGES_ON_PAGE'][] = $output;
                 if ($this->gifBuilder->dontCheckForExistingTempFile || !$this->gifBuilder->file_exists_typo3temp_file($output, $input)) {
-                    $ret = $this->gifBuilder->imageMagickExec($input, $output, $params, 0);
+                    $ret = $this->gifBuilder->imageMagickExec($input, $output, $paramsFinal . $tempFileName, 0);
                     if ($this->logger) {
-                        $this->logger->info(sprintf('CSM - Execute (%s) returned (%s)', $params, $ret));
+                        $this->logger->info(sprintf('CSM - Execute (%s) returned (%s)', $paramsFinal . $tempFileName, $ret));
                     }
                 }
                 if (file_exists($output)) {
