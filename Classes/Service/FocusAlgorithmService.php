@@ -326,7 +326,7 @@ class FocusAlgorithmService implements SingletonInterface {
      */
     protected function executeImageMagickCropResize($input, $targetWidth, $targetHeight, $scaleWidth, $scaleHeight, $cropWidth, $cropHeight, $cropOffsetX, $cropOffsetY) {
         $paramsTemp = '-resize "' . $scaleWidth . 'x' . $scaleHeight . '^" -crop ' . $cropWidth . 'x' . $cropHeight . '+' . $cropOffsetX . '+' . $cropOffsetY . ' +repage';
-        $paramsFinal = '-resize "' . $targetWidth . 'x' . $targetHeight . '" -background transparent -gravity center -extent "' . $targetWidth . 'x' . $targetHeight . '" -compose Copy_Opacity -composite ';
+        $paramsFinal = '-resize "' . $targetWidth . 'x' . $targetHeight . '" -background transparent -gravity center -extent "' . $targetWidth . 'x' . $targetHeight . '"';
 
         $params = $paramsTemp . $paramsFinal;
 
@@ -367,9 +367,9 @@ class FocusAlgorithmService implements SingletonInterface {
                 // Register temporary filename:
                 $GLOBALS['TEMP_IMAGES_ON_PAGE'][] = $output;
                 if ($this->gifBuilder->dontCheckForExistingTempFile || !$this->gifBuilder->file_exists_typo3temp_file($output, $input)) {
-                    $ret = $this->gifBuilder->imageMagickExec($input, $output, $paramsFinal . $tempFileName, 0);
+                    $ret = $this->gifBuilder->imageMagickExec($tempFileName, $output, $paramsFinal, 0);
                     if ($this->logger) {
-                        $this->logger->info(sprintf('CSM - Execute (%s) returned (%s)', $paramsFinal . $tempFileName, $ret));
+                        $this->logger->info(sprintf('CSM - Execute (%s) returned (%s)', $paramsFinal, $ret));
                     }
                 }
                 if (file_exists($output)) {
