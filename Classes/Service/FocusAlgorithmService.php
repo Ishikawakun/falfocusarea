@@ -14,6 +14,11 @@ class FocusAlgorithmService implements SingletonInterface {
     const ORIENTATION_LANDSCAPE = 1;
 
     /**
+     * @var bool
+     */
+    protected $forcePng = FALSE;
+
+    /**
      * @var \TYPO3\CMS\Frontend\Imaging\GifBuilder
      */
     protected $gifBuilder = NULL;
@@ -24,8 +29,11 @@ class FocusAlgorithmService implements SingletonInterface {
     protected $logger = NULL;
 
     /**
+     * Calculate aspect ratio based on width and height.
+     *
      * @param int $width
      * @param int $height
+     *
      * @return array
      */
     protected function calcAspectRatio($width, $height) {
@@ -37,8 +45,11 @@ class FocusAlgorithmService implements SingletonInterface {
     }
 
     /**
+     * Calculate the greatest common divisor of a and b.
+     *
      * @param int $a
      * @param int $b
+     *
      * @return int
      */
     protected function gcd($a, $b) {
@@ -51,6 +62,7 @@ class FocusAlgorithmService implements SingletonInterface {
      * @param File $targetFile
      * @param array $configuration
      * @param array $fileMetaData
+     *
      * @return array
      */
     public function buildResult($originalFileName, $sourceFile, $targetFile, $configuration, $fileMetaData) {
@@ -60,7 +72,9 @@ class FocusAlgorithmService implements SingletonInterface {
             $this->gifBuilder->absPrefix = PATH_site;
         }
 
-        $debug_mode = FALSE;
+        $this->forcePng = FALSE;
+
+        $debug_mode = TRUE;
         
         if ($debug_mode && $this->logger === NULL) {
             $this->logger = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Log\\LogManager')->getLogger(__CLASS__);
@@ -90,14 +104,16 @@ class FocusAlgorithmService implements SingletonInterface {
         $focusArea['width'] = $focusArea['focal_x_max'] - $focusArea['focal_x_min'];
         $focusArea['height'] = $focusArea['focal_y_max'] - $focusArea['focal_y_min'];
 
-        // Check if focus area is usable (arbitrary minimal condition)
+        // Check if focus area is usable (arbitrary minimal condition) and use fallback mode if necessary
         if ($focusArea['width'] <= 10 || $focusArea['height'] <= 10) {
             $originalAspectRatio = $this->calcAspectRatio($width, $height);
 
-            if (($configuration['width'] == 'auto' && $configuration['height'] == 'auto') || (!isset($configuration['width']) && !isset($configuration['height']))) {
+            // Check configuration width and height for usability
+            if (($configuration['width'] == 'auto' && $configuration['height'] == 'auto') || (!(isset($configuration['width']) && isset($configuration['height'])))) {
                 if ($this->logger) {
                     $this->logger->info(sprintf('CSM - Auto size fallback for image (%s)', $originalFileName));
                 }
+                // If both width and height are auto use original image size
                 $configuration['width'] = $width;
                 $configuration['height'] = $height;
             } else {
@@ -107,20 +123,32 @@ class FocusAlgorithmService implements SingletonInterface {
                 } elseif ($configuration['width'] === 0 && $configuration['height'] !== 0) {
                     $configuration['width'] = ($configuration['height'] / $originalAspectRatio[1]) * $originalAspectRatio[0];
                 }
-
-                // Check with min/max width and height to calculate target parameters
-                $configuration = $this->respectBoundaries($configuration);
             }
 
-            // Only continue if TRUE resizing happens
-            if ($configuration['width'] == $width && $configuration['height'] == $height) {
-                return;
+            // Don't use full image size as focus area fallback if size is greater threshold
+            if ($configuration['width'] > 400 && $configuration['height'] > 400) {
+                // Create full focus area for fallback
+                $focusArea = array(
+                    'focal_x_min' => 0,
+                    'focal_x_max' => $width,
+                    'focal_y_min' => 0,
+                    'focal_y_max' => $height,
+                );
+            } else {
+                $focusArea = array(
+                    'focal_x_min' => max(0, (int)(($width * 0.5) - ($configuration['width'] * 0.5))),
+                    'focal_x_max' => min($width, (int)(($width * 0.5) + ($configuration['width'] * 0.5))),
+                    'focal_y_min' => max(0, (int)(($height * 0.5) - ($configuration['height'] * 0.5))),
+                    'focal_y_max' => min($height, (int)(($height * 0.5) + ($configuration['height'] * 0.5))),
+                );
             }
 
-            if ($configuration['width'] !== 0 && $configuration['height'] !== 0) {
-                return $this->executeImageMagickCropResize($originalFileName, $configuration['width'], $configuration['height'], $configuration['width'],
-                    $configuration['height'], $configuration['width'], $configuration['height'], 0, 0);
-            }
+            // Re-Calculate focus area side lengths
+            $focusArea['width'] = $focusArea['focal_x_max'] - $focusArea['focal_x_min'];
+            $focusArea['height'] = $focusArea['focal_y_max'] - $focusArea['focal_y_min'];
+
+            // Check with min/max width and height to calculate target parameters
+            $configuration = $this->respectBoundaries($configuration);
         } else {
             // Interpret rescaling case based on configuration data
             $originalAspectRatio = $this->calcAspectRatio($width, $height);
@@ -142,28 +170,48 @@ class FocusAlgorithmService implements SingletonInterface {
 
             // Check with min/max width and height to calculate target parameters
             $configuration = $this->respectBoundaries($configuration);
+        }
 
-            // Determine target scale and crop parameters
-            if ($configuration['width'] !== 0 && $configuration['height'] !== 0) {
-                $orientation = $originalAspectRatio[0] >= $originalAspectRatio[1] ? self::ORIENTATION_LANDSCAPE : self::ORIENTATION_PORTRAIT;
+        // Determine target scale and crop parameters
+        if ($configuration['width'] !== 0 && $configuration['height'] !== 0) {
+            $orientation = $originalAspectRatio[0] >= $originalAspectRatio[1] ? self::ORIENTATION_LANDSCAPE : self::ORIENTATION_PORTRAIT;
 
-                $preferredScale = 1;
-                if ($orientation == self::ORIENTATION_LANDSCAPE) {
-                    $preferredScale = $configuration['width'] / $width;
-                } elseif ($orientation == self::ORIENTATION_PORTRAIT) {
-                    $preferredScale = $configuration['height'] / $height;
-                }
-
-                $scaleAndCrop = $this->findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $width, $height);
-
-                return $this->executeImageMagickCropResize($originalFileName, $configuration['width'], $configuration['height'], (int)($scaleAndCrop['targetScale'] * $width),
-                    (int)($scaleAndCrop['targetScale'] * $height), $configuration['width'], $configuration['height'],
-                    $scaleAndCrop['offsetX'], $scaleAndCrop['offsetY']);
+            $preferredScale = 1;
+            if ($orientation == self::ORIENTATION_LANDSCAPE) {
+                $preferredScale = $configuration['width'] / $width;
+            } elseif ($orientation == self::ORIENTATION_PORTRAIT) {
+                $preferredScale = $configuration['height'] / $height;
             }
+
+            $scaleAndCrop = $this->findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $width, $height);
+
+            $scaleWidth = (int)($scaleAndCrop['targetScale'] * $width);
+            $scaleHeight = (int)($scaleAndCrop['targetScale'] * $height);
+
+            if ($scaleWidth < $configuration['width']) {
+                $cropWidth = $scaleWidth;
+                $this->forcePng = TRUE;
+            } else {
+                $cropWidth = $configuration['width'];
+            }
+            if ($scaleHeight < $configuration['height']) {
+                $cropHeight = $scaleHeight;
+                $this->forcePng = TRUE;
+            } else {
+                $cropHeight = $configuration['height'];
+            }
+
+            return $this->executeImageMagickCropResize($originalFileName, $configuration['width'],
+                $configuration['height'], $scaleWidth, $scaleHeight, $cropWidth, $cropHeight, $scaleAndCrop['offsetX'],
+                $scaleAndCrop['offsetY']);
+        } else {
+            return array();
         }
     }
 
     /**
+     * TODO: comments
+     *
      * @param array $preferredScale
      * @param array $focusArea
      * @param array $configuration
@@ -205,13 +253,15 @@ class FocusAlgorithmService implements SingletonInterface {
         }
 
         if ($this->logger) {
-            $this->logger->info(sprintf('CSM - adjustments' . PHP_EOL .  'scale ("%f") offset x ("%d") offset y ("%d")', $targetScale, $offsetX, $offsetY));
+            $this->logger->info(sprintf('CSM - adjustments scale ("%f") offset x ("%d") offset y ("%d")', $targetScale, $offsetX, $offsetY));
         }
 
         return array('targetScale' => $targetScale, 'offsetX' => $offsetX, 'offsetY' => $offsetY);
     }
 
     /**
+     * TODO: comments
+     *
      * @param string $axisName
      * @param int $targetFocusValue
      * @param int $targetScaleImageValue
@@ -270,8 +320,8 @@ class FocusAlgorithmService implements SingletonInterface {
     /**
      * Check configuration for compliance with maxW, minW, maxH, minH parameters
      *
-     * @param array $configuration
-     * @return array
+     * @param array $configuration the configuration array of the processing task
+     * @return array processed configuration
      */
     protected function respectBoundaries($configuration) {
         $configuration = $this->respectBoundariesBySide($configuration, 'width');
@@ -281,16 +331,21 @@ class FocusAlgorithmService implements SingletonInterface {
     }
 
     /**
-     * @param array $configuration
-     * @param string $sideLong
-     * @param string $sideShort
-     * @return array
+     * Check limits for the specified side in the configuration.
+     *
+     * @param array $configuration the configuration array of the processing task
+     * @param string $sideLong either "width" or "height"
+     * @param null|string $sideOther short descriptor used in configuration array
+     *
+     * @return array processed configuration
      */
     protected function respectBoundariesBySide($configuration, $sideLong, $sideOther = NULL) {
+        // Determine short descriptor for side used in configuration
         if ($sideOther === NULL) {
             $sideOther = ucfirst($sideLong);
         }
 
+        // Ensure minimum and maximum values are respected
         if (isset($configuration[$sideLong]) && $configuration[$sideLong] > 0) {
             if (isset($configuration['min' . $sideOther]) && $configuration['min' . $sideOther] > 0) {
                 $configuration[$sideLong] = $configuration[$sideLong] >= $configuration['min' . $sideOther] ? $configuration[$sideLong] : $configuration['min' . $sideOther];
@@ -313,21 +368,31 @@ class FocusAlgorithmService implements SingletonInterface {
     }
 
     /**
-     * @param string $input The relative (to PATH_site) image filepath, input file (read from)
-     * @param string $output The relative (to PATH_site) image filepath, output filename (written to)
-     * @param int $scaleWidth
-     * @param int $scaleHeight
-     * @param int $cropWidth
-     * @param int $cropHeight
-     * @param int $cropOffsetX
-     * @param int $cropOffsetY
+     * This function takes the determined target, scale and crop values to generate the final image for the frontend.
+     *
+     * This happens in two steps, first the input image is resize it to the determined scale after which it is blended
+     * with a transparent background mask and resize it to the target image size if target scale size and final image
+     * size differ.
+     *
+     * @param string $input The relative (to PATH_site) image file path, input file (read from)
+     * @param int $targetWidth final image width after processing
+     * @param int $targetHeight final image height after processing
+     * @param int $scaleWidth image width at target scale
+     * @param int $scaleHeight image height at target scale
+     * @param int $cropWidth image width after cropping
+     * @param int $cropHeight image height after cropping
+     * @param int $cropOffsetX x-axis offset where cropping of image should start
+     * @param int $cropOffsetY y-axis offset where cropping of image should start
      *
      * @return array
      */
     protected function executeImageMagickCropResize($input, $targetWidth, $targetHeight, $scaleWidth, $scaleHeight, $cropWidth, $cropHeight, $cropOffsetX, $cropOffsetY) {
+        // Command for generating the temporary image file (only resizing the input image)
         $paramsTemp = '-resize "' . $scaleWidth . 'x' . $scaleHeight . '^" -crop ' . $cropWidth . 'x' . $cropHeight . '+' . $cropOffsetX . '+' . $cropOffsetY . ' +repage';
+        // Command for generating the final image file with the transparent background mask
         $paramsFinal = '-resize "' . $targetWidth . 'x' . $targetHeight . '" -background transparent -gravity center -extent "' . $targetWidth . 'x' . $targetHeight . '"';
 
+        // Concatenate both command parameters for hash generation
         $params = $paramsTemp . $paramsFinal;
 
         /**
@@ -338,6 +403,7 @@ class FocusAlgorithmService implements SingletonInterface {
             return $this->gifBuilder->getImageDimensions($input);
         }
         if ($info = $this->gifBuilder->getImageDimensions($input)) {
+            // Determine final image file extension
             $newExt = $info[2];
             if ($newExt == 'web') {
                 if (GeneralUtility::inList($this->gifBuilder->webImageExt, $info[2])) {
@@ -346,6 +412,11 @@ class FocusAlgorithmService implements SingletonInterface {
                     $newExt = $this->gifBuilder->gif_or_jpg($info[2], $info[0], $info[1]);
                 }
             }
+            if ($this->forcePng && $newExt !== 'png') {
+                $newExt = 'png';
+            }
+            // If file extension is allowed generate the temporary and final image using imagemagick or gdlib as
+            // configured in $TYPO3_CONF_VARS['GFX']
             if (GeneralUtility::inList($this->gifBuilder->imageFileExt, $newExt)) {
                 if ($this->gifBuilder->alternativeOutputKey) {
                     $theOutputName = GeneralUtility::shortMD5($params . basename($input) . $this->gifBuilder->alternativeOutputKey . '[' . 0 . ']');
@@ -359,7 +430,7 @@ class FocusAlgorithmService implements SingletonInterface {
                 if ($this->gifBuilder->dontCheckForExistingTempFile || !$this->gifBuilder->file_exists_typo3temp_file($tempFileName, $input)) {
                     $status = $this->gifBuilder->imageMagickExec($input, $tempFileName, $paramsTemp, 0);
                     if ($this->logger) {
-                        $this->logger->info(sprintf('CSM - Execute (%s) returned (%s)', $paramsTemp, $status));
+                        $this->logger->info(sprintf('CSM - Execute command (%s) returned (%s) input (%s) output (%s)', $paramsTemp, $status, $input, $tempFileName));
                     }
                 }
                 // Real output file
@@ -369,13 +440,16 @@ class FocusAlgorithmService implements SingletonInterface {
                 if ($this->gifBuilder->dontCheckForExistingTempFile || !$this->gifBuilder->file_exists_typo3temp_file($output, $input)) {
                     $ret = $this->gifBuilder->imageMagickExec($tempFileName, $output, $paramsFinal, 0);
                     if ($this->logger) {
-                        $this->logger->info(sprintf('CSM - Execute (%s) returned (%s)', $paramsFinal, $ret));
+                        $this->logger->info(sprintf('CSM - Execute command (%s) returned (%s) input (%s) output (%s)', $paramsFinal, $ret, $tempFileName, $output));
                     }
+                }
+                if (file_exists($tempFileName)) {
+                    unlink($tempFileName);
                 }
                 if (file_exists($output)) {
                     $info[3] = $output;
                     $info[2] = $newExt;
-                    // params could realisticly change some imagedata!
+                    // params could actually change some image data!
                     if ($params) {
                         $info = $this->gifBuilder->getImageDimensions($info[3]);
                     }
