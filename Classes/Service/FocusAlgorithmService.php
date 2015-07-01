@@ -201,9 +201,9 @@ class FocusAlgorithmService implements SingletonInterface {
 
             $preferredScale = 1;
             if ($orientation == self::ORIENTATION_LANDSCAPE) {
-                $preferredScale = $configuration['width'] / $width;
+                $preferredScale = $configuration['width'] * pow($width, -1);
             } elseif ($orientation == self::ORIENTATION_PORTRAIT) {
-                $preferredScale = $configuration['height'] / $height;
+                $preferredScale = $configuration['height'] * pow($height, -1);
             }
 
             $scaleAndCrop = $this->findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $width, $height);
