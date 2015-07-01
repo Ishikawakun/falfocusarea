@@ -1,6 +1,29 @@
 <?php
 namespace Ishikawakun\Falfocusarea\Override\Resource;
 
+/***************************************************************
+ *  Copyright notice
+ *
+ *  (c) 2015 Sven Radetzky <sven.radetzky@gmx.de>
+ *  All rights reserved
+ *
+ *  This script is part of the TYPO3 project. The TYPO3 project is
+ *  free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  The GNU General Public License can be found at
+ *  http://www.gnu.org/copyleft/gpl.html.
+ *
+ *  This script is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  This copyright notice MUST APPEAR in all copies of the script!
+ ***************************************************************/
+
 use Ishikawakun\Falfocusarea\Utility\LogUtility;
 use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Resource\FileInterface;
@@ -15,7 +38,9 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
     protected $focusAlgorithmService = NULL;
 
     /**
-     * This method actually does the processing of files locally
+     * Adaption of the original Code form \TYPO3\CMS\Core\Resource\Processing\LocalCropScaleMaskHelper->process()
+     *
+     * This method actually does the processing of files locally.
      *
      * Takes the original file (for remote storages this will be fetched from the remote server),
      * does the IM magic on the local server by creating a temporary typo3temp/ file,
@@ -51,16 +76,17 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
         $options = $this->getConfigurationForImageCropScaleMask($targetFile, $gifBuilder);
 
         // Normal situation (no masking)
+        // Focus point image resizing does its own masking so it is disabled when additional masking options are set.
         if (!(is_array($configuration['maskImages']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['im'])) {
-            // Focal point handling starts here
+            // Only use the focus point image resizing if it is enabled in the $TYPO3_CONF_VARS
             if (isset($GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) {
-                // Make instance if necessary
+                // Ensure the service instance is instantiated with the TYPO3 CMS Object Manager
                 if ($this->focusAlgorithmService === NULL) {
                     $this->focusAlgorithmService = GeneralUtility::makeInstance('Ishikawakun\\Falfocusarea\\Service\\FocusAlgorithmService');
                 }
-                // Get file metadata
+                // Get file metadata for further processing
                 $fileData = $sourceFile->getProperties();
-                // the result info is an array with 0=width,1=height,2=extension,3=filename
+                // The result info is an array with 0=width,1=height,2=extension,3=filename
                 $result = $this->focusAlgorithmService->buildResult($originalFileName, $sourceFile, $targetFile, $configuration, $fileData);
             } else {
                 // the result info is an array with 0=width,1=height,2=extension,3=filename
