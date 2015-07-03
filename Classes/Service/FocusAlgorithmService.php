@@ -80,6 +80,8 @@ class FocusAlgorithmService implements SingletonInterface {
     }
 
     /**
+     * TODO: comments
+     *
      * @param string $originalFileName
      * @param File $sourceFile
      * @param File $targetFile
@@ -105,6 +107,9 @@ class FocusAlgorithmService implements SingletonInterface {
 
         $width = 0;
         $height = 0;
+
+        // Backup original configuration settings for later checks
+        $originalConfiguration = $configuration;
 
         // Check focus area corners in metadata and fallback if necessary
         $focusArea = array(
@@ -132,7 +137,7 @@ class FocusAlgorithmService implements SingletonInterface {
             $originalAspectRatio = $this->calcAspectRatio($width, $height);
 
             // Check configuration width and height for usability
-            if (($configuration['width'] == 'auto' && $configuration['height'] == 'auto') || (!(isset($configuration['width']) && isset($configuration['height'])))) {
+            if (($configuration['width'] == 'auto' && $configuration['height'] == 'auto') || ((!isset($configuration['width']) && (!isset($configuration['height']))))) {
                 if ($this->logger) {
                     $this->logger->info(sprintf('CSM - Auto size fallback for image (%s)', $originalFileName));
                 }
@@ -142,9 +147,9 @@ class FocusAlgorithmService implements SingletonInterface {
             } else {
                 // Check for missing resize info and calculate it based on aspect ratio of the image
                 if ($configuration['width'] !== 0 && $configuration ['height'] === 0) {
-                    $configuration['height'] = ($configuration['width'] / $originalAspectRatio[0]) * $originalAspectRatio[1];
+                    $configuration['height'] = (int)($configuration['width'] / $originalAspectRatio[0]) * $originalAspectRatio[1];
                 } elseif ($configuration['width'] === 0 && $configuration['height'] !== 0) {
-                    $configuration['width'] = ($configuration['height'] / $originalAspectRatio[1]) * $originalAspectRatio[0];
+                    $configuration['width'] = (int)($configuration['height'] / $originalAspectRatio[1]) * $originalAspectRatio[0];
                 }
             }
 
@@ -169,14 +174,11 @@ class FocusAlgorithmService implements SingletonInterface {
             // Re-Calculate focus area side lengths
             $focusArea['width'] = $focusArea['focal_x_max'] - $focusArea['focal_x_min'];
             $focusArea['height'] = $focusArea['focal_y_max'] - $focusArea['focal_y_min'];
-
-            // Check with min/max width and height to calculate target parameters
-            $configuration = $this->respectBoundaries($configuration);
         } else {
             // Interpret rescaling case based on configuration data
             $originalAspectRatio = $this->calcAspectRatio($width, $height);
 
-            if (($configuration['width'] == 'auto' && $configuration['height'] == 'auto') || (!isset($configuration['width']) && !isset($configuration['height']))) {
+            if (($configuration['width'] == 'auto' && $configuration['height'] == 'auto') || ((!isset($configuration['width']) && (!isset($configuration['height']))))) {
                 if ($this->logger) {
                     $this->logger->info(sprintf('CSM - Auto size fallback for image (%s)', $originalFileName));
                 }
@@ -190,10 +192,10 @@ class FocusAlgorithmService implements SingletonInterface {
             } elseif ($configuration['width'] === 0 && $configuration['height'] !== 0) {
                 $configuration['width'] = ($configuration['height'] / $originalAspectRatio[1]) * $originalAspectRatio[0];
             }
-
-            // Check with min/max width and height to calculate target parameters
-            $configuration = $this->respectBoundaries($configuration);
         }
+
+        // Check with min/max width and height to calculate target parameters
+        $configuration = $this->respectBoundaries($configuration);
 
         // Determine target scale and crop parameters
         if ($configuration['width'] !== 0 && $configuration['height'] !== 0) {
@@ -211,6 +213,18 @@ class FocusAlgorithmService implements SingletonInterface {
             $scaleWidth = (int)($scaleAndCrop['targetScale'] * $width);
             $scaleHeight = (int)($scaleAndCrop['targetScale'] * $height);
 
+            // Recheck auto configuration options for width and height
+            if ($originalConfiguration['width'] == 'auto') {
+                $configuration['width'] = $scaleWidth;
+                // Redetermine if max and min constraints are ensured
+                $this->respectBoundaries($configuration);
+            } else if ($originalConfiguration['height'] == 'auto') {
+                $configuration['height'] = $scaleHeight;
+                // Redetermine if max and min constraints are ensured
+                $this->respectBoundaries($configuration);
+            }
+
+            // Determine wether a transparent mask is needed for target image based on current configuration
             if ($scaleWidth < $configuration['width']) {
                 $cropWidth = $scaleWidth;
                 $this->forcePng = TRUE;
@@ -312,7 +326,7 @@ class FocusAlgorithmService implements SingletonInterface {
                 if ($preferredMargin <= $firstMarginScale && $preferredMargin <= $secondMarginScale) {
                     $offset = max(0, ((int)($focusAreaMinValue * $targetScale)) - $preferredMargin);
                 } else {
-                    // TODO: Case distinction
+                    // TODO: Better case distinction
                     if ($preferredMargin <= $firstMarginScale && $preferredMargin > $secondMarginScale) {
                         $missingMargin = $preferredMargin - $secondMarginScale;
                         if ($preferredMargin + $missingMargin <= $firstMarginScale) {
