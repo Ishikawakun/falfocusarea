@@ -97,9 +97,9 @@ class FocusAlgorithmService implements SingletonInterface {
             $this->gifBuilder->absPrefix = PATH_site;
         }
 
-        $this->forcePng = FALSE;
+        $this->forcePng = TRUE;
 
-        $debug_mode = TRUE;
+        $debug_mode = FALSE;
         
         if ($debug_mode && $this->logger === NULL) {
             $this->logger = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Log\\LogManager')->getLogger(__CLASS__);
@@ -208,7 +208,7 @@ class FocusAlgorithmService implements SingletonInterface {
                 $preferredScale = $configuration['height'] * pow($height, -1);
             }
 
-            $scaleAndCrop = $this->findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $width, $height);
+            $scaleAndCrop = $this->findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $width, $height, $orientation);
 
             $scaleWidth = (int)($scaleAndCrop['targetScale'] * $width);
             $scaleHeight = (int)($scaleAndCrop['targetScale'] * $height);
@@ -252,10 +252,11 @@ class FocusAlgorithmService implements SingletonInterface {
      * @param array $preferredScale
      * @param array $focusArea
      * @param array $configuration
+     * @param int $orientation
      *
      * @return array
      */
-    protected function findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $sourceWidth, $sourceHeight) {
+    protected function findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $sourceWidth, $sourceHeight, $orientation) {
         if ($focusArea['width'] > 10 && $focusArea['height'] > 10) {
             $targetScale = min($configuration['width'] / $focusArea['width'], $configuration['height'] / $focusArea['height']);
         } else {
@@ -263,8 +264,10 @@ class FocusAlgorithmService implements SingletonInterface {
         }
 
         // Prefer preferred scale
-        if ($preferredScale < $targetScale) {
-            $targetScale = $preferredScale;
+        if ($orientation == self::ORIENTATION_LANDSCAPE) {
+            if ($preferredScale < $targetScale) {
+                $targetScale = $preferredScale;
+            }
         }
 
         // Determine focus size on target scale
