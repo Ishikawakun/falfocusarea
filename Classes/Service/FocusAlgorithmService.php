@@ -249,6 +249,21 @@ class FocusAlgorithmService implements SingletonInterface {
     /**
      * TODO: comments
      *
+     * @param $scale
+     * @param $configuration
+     */
+    protected function scaleFillsConfiguration($scale, $configuration, $sourceWidth, $sourceHeight) {
+        if ((int)($scale * $sourceWidth) >= $configuration['width'] &&
+            (int)($scale * $sourceHeight) >= $configuration['height']) {
+            return TRUE;
+        }
+
+        return FALSE;
+    }
+
+    /**
+     * TODO: comments
+     *
      * @param array $preferredScale
      * @param array $focusArea
      * @param array $configuration
@@ -263,11 +278,9 @@ class FocusAlgorithmService implements SingletonInterface {
             $targetScale = $preferredScale;
         }
 
-        // Prefer preferred scale
-        if ($orientation == self::ORIENTATION_LANDSCAPE) {
-            if ($preferredScale < $targetScale) {
-                $targetScale = $preferredScale;
-            }
+        // Prefer preferred scale IF it leaves no transparent areas
+        if ($preferredScale < $targetScale && $this->scaleFillsConfiguration($preferredScale, $configuration, $sourceWidth, $sourceHeight)) {
+            $targetScale = $preferredScale;
         }
 
         // Determine focus size on target scale
