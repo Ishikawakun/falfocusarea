@@ -79,7 +79,7 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
         // Focus point image resizing does its own masking so it is disabled when additional masking options are set.
         if (!(is_array($configuration['maskImages']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['im'])) {
             // Only use the focus point image resizing if it is enabled in the $TYPO3_CONF_VARS
-            if (isset($GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) {
+            if (isset($GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced'] > 0) {
                 // Ensure the service instance is instantiated with the TYPO3 CMS Object Manager
                 if ($this->focusAlgorithmService === NULL) {
                     $this->focusAlgorithmService = GeneralUtility::makeInstance('Ishikawakun\\Falfocusarea\\Service\\FocusAlgorithmService');

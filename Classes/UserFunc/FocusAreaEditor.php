@@ -118,8 +118,6 @@ class FocusAreaEditor {
 
                         // Start Jcrop plugin
                         $("#focusareaeditor > img").Jcrop({
-                            boxWidth: 800,
-                            boxHeight: 600,
                             onSelect: changeFields,
                             onChange: changeFields,
                             trueSize: [width,height],

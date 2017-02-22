@@ -7,22 +7,22 @@ $tca = array(
 	),
 	'types' => array(
 		TYPO3\CMS\Core\Resource\File::FILETYPE_IMAGE => array('showitem' => '
-								fileinfo, title, description, alternative, keywords, caption, download_name,
+			fileinfo, title, description, keywords, --palette--;;20;;,
 
-								--div--;LLL:EXT:falfocusarea/Resources/Private/Language/locallang_tca.xlf:tabs.focalpoint,
-									focal_point_editor,
-									--palette--;LLL:EXT:falfocusarea/Resources/Private/Language/locallang_tca.xlf:palette.focalpoint_x;70;;,
-									--palette--;LLL:EXT:falfocusarea/Resources/Private/Language/locallang_tca.xlf:palette.focalpoint_y;80;;,
+			--div--;LLL:EXT:falfocusarea/Resources/Private/Language/locallang_tca.xlf:tabs.focalpoint,
+				focal_point_editor,
+				--palette--;LLL:EXT:falfocusarea/Resources/Private/Language/locallang_tca.xlf:palette.focalpoint_x;70;;,
+				--palette--;LLL:EXT:falfocusarea/Resources/Private/Language/locallang_tca.xlf:palette.focalpoint_y;80;;,
 
-								--div--;LLL:EXT:cms/locallang_ttc.xml:tabs.access,
-									--palette--;LLL:EXT:filemetadata/Resources/Private/Language/locallang_tca.xlf:palette.visibility;10;; ,
-									fe_groups,
+			--div--;LLL:EXT:cms/locallang_ttc.xml:tabs.access,
+				--palette--;LLL:EXT:filemetadata/Resources/Private/Language/locallang_tca.xlf:palette.visibility;10;; ,
+				fe_groups,
 
-								--div--;LLL:EXT:filemetadata/Resources/Private/Language/locallang_tca.xlf:tabs.metadata,
-									creator, --palette--;;20;;,
-									--palette--;LLL:EXT:filemetadata/Resources/Private/Language/locallang_tca.xlf:palette.geo_location;40;; ,
-									--palette--;;30;;,
-									--palette--;LLL:EXT:filemetadata/Resources/Private/Language/locallang_tca.xlf:palette.metrics;50;;'),
+			--div--;LLL:EXT:filemetadata/Resources/Private/Language/locallang_tca.xlf:tabs.metadata,
+				creator,
+				--palette--;LLL:EXT:filemetadata/Resources/Private/Language/locallang_tca.xlf:palette.geo_location;40;; ,
+				--palette--;;30;;,
+				--palette--;LLL:EXT:filemetadata/Resources/Private/Language/locallang_tca.xlf:palette.metrics;50;;'),
 	),
 	'palettes' => array(
 		'70' => array('showitem' => 'focal_x_min, focal_x_max', 'canNotCollapse' => '1'),
@@ -97,6 +97,36 @@ $tca = array(
 				'size' => '30',
 				'userFunc' => 'Ishikawakun\\Falfocusarea\\UserFunc\\FocusAreaEditor->tcaField',
 			)
+		),
+
+		'width' => array(
+			'exclude' => 1,
+			'l10n_mode' => 'exclude',
+			'l10n_display' => 'defaultAsReadonly',
+			'label' => 'LLL:EXT:filemetadata/Resources/Private/Language/locallang_tca.xlf:sys_file_metadata.width',
+			'config' => array(
+				'type' => 'input',
+				'size' => '10',
+				'max' => '20',
+				'eval' => 'int',
+				'default' => '0',
+				'readOnly' => FALSE,
+			),
+		),
+
+		'height' => array(
+			'exclude' => 1,
+			'l10n_mode' => 'exclude',
+			'l10n_display' => 'defaultAsReadonly',
+			'label' => 'LLL:EXT:filemetadata/Resources/Private/Language/locallang_tca.xlf:sys_file_metadata.height',
+			'config' => array(
+				'type' => 'input',
+				'size' => '10',
+				'max' => '20',
+				'eval' => 'int',
+				'default' => '0',
+				'readOnly' => FALSE,
+			),
 		),
 	),
 );
