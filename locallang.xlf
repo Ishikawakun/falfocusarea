@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<xliff version="1.0">
+	<file source-language="en" datatype="plaintext" original="settings" product-name="falfocusarea" date="2017-02-22T16:06:06+01:00">
+		<header/>
+		<body>
+			<trans-unit id="settingsCat">
+				<source>Settings</source>
+			</trans-unit>
+
+			<trans-unit id="considerCropTitle">
+				<source>Respect crop editor choices in sys_file_reference table?</source>
+			</trans-unit>
+
+			<trans-unit id="considerCropDescription">
+				<source>Whether to respect or ignore the selected cropping of the image from the sys_file_reference table.</source>
+			</trans-unit>
+
+			<trans-unit id="hideCropEditorTitle">
+				<source>Disable crop editor in references?</source>
+			</trans-unit>
+
+			<trans-unit id="hideCropEditorDescription">
+				<source>Display or hide the crop editor in sys_file_reference.</source>
+			</trans-unit>
+
+			<trans-unit id="focusAreaTableTitle">
+				<source>Which table holds the focus area data?</source>
+			</trans-unit>
+
+			<trans-unit id="focusAreaTableDescription">
+				<source>With metadata the sys_file_metadata table is used and only ONE focus area can be defined per image. With the sys_file_reference table any reference can have a different focus area defined per image, but it also NEEDS to be defined per reference again.</source>
+			</trans-unit>
+
+			<trans-unit id="responsivePreviewTitle">
+				<source>Enable responsive preview</source>
+			</trans-unit>
+
+			<trans-unit id="responsivePreviewDescription">
+				<source>Allow special preview mode which shows previews based on ALL defined media queries.</source>
+			</trans-unit>
+
+			<trans-unit id="convertColorspaceTitle">
+				<source>Convert colorspace</source>
+			</trans-unit>
+
+			<trans-unit id="convertColorspaceDescription">
+				<source>An additional step is introduced before/during resizing of an image to ensure the image uses the correct colorspace (based on $GLOBALS['TYPO3_CONF_VARS']['GFX']['colorspace'])</source>
+			</trans-unit>
+
+			<trans-unit id="transparencySettingTitle">
+				<source>Erlaube Transparenz in Ergebnisbildern? (Ja/Nein/Nur in Portraits)</source>
+			</trans-unit>
+
+			<trans-unit id="transparencySettingDescription">
+				<source>This setting is used to allow transparency in the final images. When transparency is allowed the focus and crop areas are strictly followed, otherwise the images are always the desired resolution but crop and focus areas can be partially or completely ignored!</source>
+			</trans-unit>
+		</body>
+	</file>
+</xliff>

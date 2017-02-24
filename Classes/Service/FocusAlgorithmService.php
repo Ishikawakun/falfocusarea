@@ -28,7 +28,8 @@ use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-class FocusAlgorithmService implements SingletonInterface {
+class FocusAlgorithmService implements SingletonInterface
+{
     /**
      * Orientation constants
      */
@@ -38,12 +39,12 @@ class FocusAlgorithmService implements SingletonInterface {
     /**
      * @var \TYPO3\CMS\Frontend\Imaging\GifBuilder
      */
-    protected $gifBuilder = NULL;
+    protected $gifBuilder = null;
 
     /**
      * @var \TYPO3\CMS\Core\Log\Logger
      */
-    protected $logger = NULL;
+    protected $logger = null;
 
     /**
      * Calculate aspect ratio based on width and height.
@@ -53,7 +54,8 @@ class FocusAlgorithmService implements SingletonInterface {
      *
      * @return array
      */
-    protected function calcAspectRatio($width, $height) {
+    protected function calcAspectRatio($width, $height)
+    {
         $gcd = $this->gcd($width, $height);
         if ($gcd > 0) {
             return array($width / $gcd, $height / $gcd);
@@ -69,7 +71,8 @@ class FocusAlgorithmService implements SingletonInterface {
      *
      * @return int
      */
-    protected function gcd($a, $b) {
+    protected function gcd($a, $b)
+    {
         return $b === 0 ? $a : $this->gcd($a, $a % $b);
     }
 
@@ -84,16 +87,17 @@ class FocusAlgorithmService implements SingletonInterface {
      *
      * @return array
      */
-    public function buildResult($originalFileName, $sourceFile, $targetFile, $configuration, $fileMetaData) {
-        if ($this->gifBuilder === NULL) {
+    public function buildResult($originalFileName, $sourceFile, $targetFile, $configuration, $fileMetaData)
+    {
+        if ($this->gifBuilder === null) {
             $this->gifBuilder = GeneralUtility::makeInstance('TYPO3\\CMS\\Frontend\\Imaging\\GifBuilder');
             $this->gifBuilder->init();
             $this->gifBuilder->absPrefix = PATH_site;
         }
 
-        $debug_mode = FALSE;
+        $debug_mode = false;
         
-        if ($debug_mode && $this->logger === NULL) {
+        if ($debug_mode && $this->logger === null) {
             $this->logger = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Log\\LogManager')->getLogger(__CLASS__);
         }
 
@@ -115,7 +119,7 @@ class FocusAlgorithmService implements SingletonInterface {
         // Get file width and height from file if metadata is missing
         if ($width == 0 || $height == 0) {
             $imageDimensions = $this->gifBuilder->getImageDimensions($originalFileName);
-            if ($imageDimensions != NULL) {
+            if ($imageDimensions != null) {
                 $width = $imageDimensions[0];
                 $height = $imageDimensions[1];
             }
@@ -188,7 +192,8 @@ class FocusAlgorithmService implements SingletonInterface {
      *
      * @return array
      */
-    protected function findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $sourceWidth, $sourceHeight, $orientation) {
+    protected function findOptimalTargetScaleAndOffsets($preferredScale, $focusArea, $configuration, $sourceWidth, $sourceHeight, $orientation)
+    {
         if ($focusArea['width'] > 10 && $focusArea['height'] > 10) {
             if ($orientation == self::ORIENTATION_PORTRAIT) {
                 $targetScale = $configuration['width'] / $sourceWidth;
@@ -242,7 +247,8 @@ class FocusAlgorithmService implements SingletonInterface {
      * @param int $focusAreaMaxValue
      * @return int
      */
-    protected function determineOffset($sourceValue, $targetScale, $configurationValue, $focusAreaMinValue, $focusAreaMaxValue) {
+    protected function determineOffset($sourceValue, $targetScale, $configurationValue, $focusAreaMinValue, $focusAreaMaxValue)
+    {
         // Determine non cropped image size on target scale
         $targetScaleImageValue = (int)($sourceValue * $targetScale);
 
@@ -263,11 +269,12 @@ class FocusAlgorithmService implements SingletonInterface {
      * @param array $configuration the configuration array of the processing task
      * @return array processed configuration
      */
-    protected function respectBoundaries($configuration) {
+    protected function respectBoundaries($configuration)
+    {
         // Respect boundary configuration for width
         $configuration['width'] = isset($configuration['maxW']) ?
-            $configuration['width'] > $configuration['maxW'] ? 
-                min($configuration['width'], $configuration['maxW']) : 
+            $configuration['width'] > $configuration['maxW'] ?
+                min($configuration['width'], $configuration['maxW']) :
                 isset($configuration['minW']) ? max($configuration['width'], $configuration['minW']) : $configuration['width'] :
             isset($configuration['minW']) ? max($configuration['width'], $configuration['minW']) : $configuration['width'];
 
@@ -298,7 +305,8 @@ class FocusAlgorithmService implements SingletonInterface {
      *
      * @return array
      */
-    protected function executeImageMagickCropResize($input, $targetWidth, $targetHeight, $scaleWidth, $scaleHeight, $offsetX, $offsetY) {
+    protected function executeImageMagickCropResize($input, $targetWidth, $targetHeight, $scaleWidth, $scaleHeight, $offsetX, $offsetY)
+    {
         // Command for generating the temporary image file (only resizing the input image)
         $params = '-resize "' . $scaleWidth . 'x' . $scaleHeight . '^" -crop "' . $targetWidth . 'x' . $targetHeight . '+' . $offsetX . '+' . $offsetY . '" +repage';
 
@@ -352,6 +360,6 @@ class FocusAlgorithmService implements SingletonInterface {
                 }
             }
         }
-        return NULL;
+        return null;
     }
 }

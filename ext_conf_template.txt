@@ -1,0 +1,19 @@
+# customsubcategory=settings=LLL:EXT:falfocusarea/locallang.xlf:settingsCat
+
+# cat=basic/settings; type=options[consider,ignore]; label=LLL:EXT:falfocusarea/locallang.xlf:considerCropTitle:LLL:EXT:falfocusarea/locallang.xlf:considerCropDescription
+considerCrop = consider
+
+# cat=basic/settings; type=boolean[1]; label=LLL:EXT:falfocusarea/locallang.xlf:hideCropEditorTitle:LLL:EXT:falfocusarea/locallang.xlf:hideCropEditorDescription
+hideCropEditor = 0
+
+# cat=basic/settings; type=options[metadata,reference]; label=LLL:EXT:falfocusarea/locallang.xlf:focusAreaTableTitle:LLL:EXT:falfocusarea/locallang.xlf:focusAreaTableDescription
+focusAreaTable = reference
+
+# cat=basic/settings; type=boolean[1]; label=LLL:EXT:falfocusarea/locallang.xlf:responsivePreviewTitle:LLL:EXT:falfocusarea/locallang.xlf:responsivePreviewDescription
+responsivePreview = 1
+
+# cat=basic/settings; type=boolean[1]; label=LLL:EXT:falfocusarea/locallang.xlf:convertColorspaceTitle:LLL:EXT:falfocusarea/locallang.xlf:convertColorspaceDescription
+convertColorspace = 1
+
+# cat=basic/settings; type=options[yes,no,portrait]; label=LLL:EXT:falfocusarea/locallang.xlf:transparencySettingTitle:LLL:EXT:falfocusarea/locallang.xlf:transparencySettingDescription
+transparencySetting = no

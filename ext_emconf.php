@@ -1,11 +1,11 @@
 <?php
 
-$EM_CONF[$_EXTKEY] = array (
-    'title' => 'FAL: Focus area for images',
-    'description' => 'Backend extension for defining focus areas in images and respecting those during resizing operations.',
+$EM_CONF[$_EXTKEY] = array(
+    'title' => 'Focus areas for fal images',
+    'description' => 'Backend extension for defining and utilizing focus areas in images or image references. Updated for TYPO3 CMS 7.6.x',
     'category' => 'backend',
-    'version' => '1.0.0',
-    'state' => 'stable',
+    'version' => '7.6.0',
+    'state' => 'beta',
     'uploadfolder' => true,
     'createDirs' => '',
     'clearcacheonload' => true,
@@ -13,21 +13,20 @@ $EM_CONF[$_EXTKEY] = array (
     'author_email' => 'sven.radetzky@mail.de',
     'author_company' => '',
     'constraints' =>
-        array (
+        array(
             'depends' =>
-                array (
-                    'typo3' => '6.2.0-6.2.99',
+                array(
+                    'typo3' => '7.6.0-7.6.99',
                     'cms' => '',
                     'extbase' => '',
                     'fluid' => '',
-                    'filemetadata' => '6.2.0-6.2.99',
+                    'filemetadata' => '7.6.0-7.6.99',
                 ),
             'conflicts' =>
-                array (
+                array(
                 ),
             'suggests' =>
-                array (
+                array(
                 ),
         ),
 );
-

@@ -29,7 +29,8 @@ use \TYPO3\CMS\Core\Resource;
 /**
  * Extending task checksum with focus area information from sys_file_metadata.
  */
-class ImageCropScaleMaskTaskWithFocusArea extends Resource\Processing\ImageCropScaleMaskTask {
+class ImageCropScaleMaskTaskWithFocusArea extends Resource\Processing\ImageCropScaleMaskTask
+{
     /**
      * Extends checksum with focus area information.
      *
@@ -37,7 +38,8 @@ class ImageCropScaleMaskTaskWithFocusArea extends Resource\Processing\ImageCropS
      *
      * @return array
      */
-    protected function getChecksumData() {
+    protected function getChecksumData()
+    {
         // Collect file metadata properties
         $fileMetaData = $this->getSourceFile()->getProperties();
 

@@ -31,11 +31,12 @@ use TYPO3\CMS\Core\Resource\Processing\LocalCropScaleMaskHelper;
 use TYPO3\CMS\Core\Resource\Processing\TaskInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
+class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper
+{
     /**
      * @var \Ishikawakun\Falfocusarea\Service\FocusAlgorithmService
      */
-    protected $focusAlgorithmService = NULL;
+    protected $focusAlgorithmService = null;
 
     /**
      * Adaption of the original Code form \TYPO3\CMS\Core\Resource\Processing\LocalCropScaleMaskHelper->process()
@@ -55,12 +56,13 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
      * @param TaskInterface $task
      * @return array|NULL
      */
-    public function process(TaskInterface $task) {
-        $result = NULL;
+    public function process(TaskInterface $task)
+    {
+        $result = null;
         $targetFile = $task->getTargetFile();
         $sourceFile = $task->getSourceFile();
 
-        $originalFileName = $sourceFile->getForLocalProcessing(FALSE);
+        $originalFileName = $sourceFile->getForLocalProcessing(false);
         /** @var $gifBuilder \TYPO3\CMS\Frontend\Imaging\GifBuilder */
         $gifBuilder = GeneralUtility::makeInstance('TYPO3\\CMS\\Frontend\\Imaging\\GifBuilder');
         $gifBuilder->init();
@@ -81,7 +83,7 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
             // Only use the focus point image resizing if it is enabled in the $TYPO3_CONF_VARS
             if (isset($GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced'] > 0) {
                 // Ensure the service instance is instantiated with the TYPO3 CMS Object Manager
-                if ($this->focusAlgorithmService === NULL) {
+                if ($this->focusAlgorithmService === null) {
                     $this->focusAlgorithmService = GeneralUtility::makeInstance('Ishikawakun\\Falfocusarea\\Service\\FocusAlgorithmService');
                 }
                 // Get file metadata for further processing
@@ -125,7 +127,7 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
                     if ($maskBottomImage instanceof FileInterface) {
                         $maskBottomImageMask = $configuration['maskImages']['maskBottomImageMask'];
                     } else {
-                        $maskBottomImageMask = NULL;
+                        $maskBottomImageMask = null;
                     }
 
                     //	Scaling:	****
@@ -135,7 +137,7 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
                     $tmpStr = $gifBuilder->randomName();
                     //	m_mask
                     $tempScale['m_mask'] = $tmpStr . '_mask.' . $temporaryExtension;
-                    $gifBuilder->imageMagickExec($maskImage->getForLocalProcessing(TRUE), $tempScale['m_mask'], $command);
+                    $gifBuilder->imageMagickExec($maskImage->getForLocalProcessing(true), $tempScale['m_mask'], $command);
                     //	m_bgImg
                     $tempScale['m_bgImg'] = $tmpStr . '_bgImg.miff';
                     $gifBuilder->imageMagickExec($maskBackgroundImage->getForLocalProcessing(), $tempScale['m_bgImg'], $command);
@@ -163,7 +165,7 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
             }
         }
         // check if the processing really generated a new file
-        if ($result !== NULL) {
+        if ($result !== null) {
             if ($result[3] !== $originalFileName) {
                 $result = array(
                     'width' => $result[0],
@@ -172,7 +174,7 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper {
                 );
             } else {
                 // No file was generated
-                $result = NULL;
+                $result = null;
             }
         }
 

@@ -30,12 +30,14 @@ use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileRepository;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-class FocusAreaEditor {
+class FocusAreaEditor
+{
     /**
      * @param array $PA
      * @param FormEngine $fObj
      */
-    public function tcaField($PA, $fObj) {
+    public function tcaField($PA, $fObj)
+    {
         $fObj->addStyleSheet('jcrop', '/typo3conf/ext/falfocusarea/Resources/Public/Jcrop/css/jquery.Jcrop.css');
 
         /** @var PageRenderer $pageRenderer */
@@ -58,8 +60,8 @@ class FocusAreaEditor {
             $hiddenYminField = $fObj->getSingleHiddenField('sys_file_metadata', 'focal_y_min', $PA['row']);
             $hiddenYmaxField = $fObj->getSingleHiddenField('sys_file_metadata', 'focal_y_max', $PA['row']);
 
-            $pageRenderer->addJsFile('/typo3conf/ext/falfocusarea/Resources/Public/Jcrop/js/jquery.color.js', 'text/javascript', FALSE, TRUE, '', TRUE);
-            $pageRenderer->addJsFile('/typo3conf/ext/falfocusarea/Resources/Public/Jcrop/js/jquery.Jcrop.js', 'text/javascript', FALSE, TRUE, '', TRUE);
+            $pageRenderer->addJsFile('/typo3conf/ext/falfocusarea/Resources/Public/Jcrop/js/jquery.color.js', 'text/javascript', false, true, '', true);
+            $pageRenderer->addJsFile('/typo3conf/ext/falfocusarea/Resources/Public/Jcrop/js/jquery.Jcrop.js', 'text/javascript', false, true, '', true);
 
             $formField = '
             <div id="focusareaeditor" class="focusareaeditor">

@@ -1,0 +1,23 @@
+{
+  "name": "ishikawakun/falfocusarea",
+  "description": "Focus areas for fal images",
+  "type": "typo3-cms-extension",
+  "authors": [
+    {
+      "name": "Sven Radetzky",
+      "email": "sven.radetzky@mail.de"
+    }
+  ],
+  "require": {
+    "typo3/cms-core": "^7.6.0"
+  },
+  "replace": {
+    "falfocusarea": "self.version",
+    "typo3-ter/falfocusarea": "self.version"
+  },
+  "autoload": {
+    "psr-4": {
+      "Ishikawakun\\Falfocusarea\\": "Classes/"
+    }
+  }
+}
