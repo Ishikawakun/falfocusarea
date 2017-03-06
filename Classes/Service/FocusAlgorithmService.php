@@ -24,9 +24,14 @@ namespace Ishikawakun\Falfocusarea\Service;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use TYPO3\CMS\Core\Imaging\GraphicalFunctions;
+use TYPO3\CMS\Core\Log\Logger;
+use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Frontend\Imaging\GifBuilder;
 
 class FocusAlgorithmService implements SingletonInterface
 {
@@ -37,12 +42,12 @@ class FocusAlgorithmService implements SingletonInterface
     const ORIENTATION_LANDSCAPE = 1;
 
     /**
-     * @var \TYPO3\CMS\Frontend\Imaging\GifBuilder
+     * @var GifBuilder
      */
     protected $gifBuilder = null;
 
     /**
-     * @var \TYPO3\CMS\Core\Log\Logger
+     * @var Logger
      */
     protected $logger = null;
 
@@ -81,7 +86,7 @@ class FocusAlgorithmService implements SingletonInterface
      *
      * @param string $originalFileName
      * @param File $sourceFile
-     * @param File $targetFile
+     * @param ProcessedFile $targetFile
      * @param array $configuration
      * @param array $fileMetaData
      *
@@ -90,7 +95,7 @@ class FocusAlgorithmService implements SingletonInterface
     public function buildResult($originalFileName, $sourceFile, $targetFile, $configuration, $fileMetaData)
     {
         if ($this->gifBuilder === null) {
-            $this->gifBuilder = GeneralUtility::makeInstance('TYPO3\\CMS\\Frontend\\Imaging\\GifBuilder');
+            $this->gifBuilder = GeneralUtility::makeInstance(GifBuilder::class);
             $this->gifBuilder->init();
             $this->gifBuilder->absPrefix = PATH_site;
         }
@@ -98,7 +103,7 @@ class FocusAlgorithmService implements SingletonInterface
         $debug_mode = false;
         
         if ($debug_mode && $this->logger === null) {
-            $this->logger = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Log\\LogManager')->getLogger(__CLASS__);
+            $this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__);
         }
 
         $width = 0;
@@ -337,9 +342,7 @@ class FocusAlgorithmService implements SingletonInterface
                 $this->gifBuilder->createTempSubDir('pics/temp/');
                 // Real output file
                 $output = $this->gifBuilder->absPrefix . $this->gifBuilder->tempPath . 'pics/' . $this->gifBuilder->filenamePrefix . $theOutputName . '.' . $newExt;
-                // Register temporary filename:
-                $GLOBALS['TEMP_IMAGES_ON_PAGE'][] = $output;
-                if ($this->gifBuilder->dontCheckForExistingTempFile || !$this->gifBuilder->file_exists_typo3temp_file($output, $input)) {
+                if ($this->gifBuilder->dontCheckForExistingTempFile || !is_file(@$output)) {
                     $ret = $this->gifBuilder->imageMagickExec($input, $output, $params, 0);
                     if ($this->logger) {
                         $this->logger->info(sprintf('CSM - Execute command (%s) returned (%s) input (%s) output (%s)', $params, $ret, $input, $output));
@@ -354,7 +357,7 @@ class FocusAlgorithmService implements SingletonInterface
                     }
                     if ($info[2] == $this->gifBuilder->gifExtension && !$this->gifBuilder->dontCompress) {
                         // Compress with IM (lzw) or GD (rle)  (Workaround for the absence of lzw-compression in GD)
-                        GeneralUtility::gif_compress($info[3], '');
+                        GraphicalFunctions::gifCompress($info[3], '');
                     }
                     return $info;
                 }

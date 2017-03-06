@@ -24,17 +24,17 @@ namespace Ishikawakun\Falfocusarea\Override\Resource;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use Ishikawakun\Falfocusarea\Utility\LogUtility;
-use TYPO3\CMS\Core\Log\LogLevel;
+use Ishikawakun\Falfocusarea\Service\FocusAlgorithmService;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\Processing\LocalCropScaleMaskHelper;
 use TYPO3\CMS\Core\Resource\Processing\TaskInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Frontend\Imaging\GifBuilder;
 
 class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper
 {
     /**
-     * @var \Ishikawakun\Falfocusarea\Service\FocusAlgorithmService
+     * @var FocusAlgorithmService
      */
     protected $focusAlgorithmService = null;
 
@@ -63,8 +63,8 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper
         $sourceFile = $task->getSourceFile();
 
         $originalFileName = $sourceFile->getForLocalProcessing(false);
-        /** @var $gifBuilder \TYPO3\CMS\Frontend\Imaging\GifBuilder */
-        $gifBuilder = GeneralUtility::makeInstance('TYPO3\\CMS\\Frontend\\Imaging\\GifBuilder');
+        /** @var $gifBuilder GifBuilder */
+        $gifBuilder = GeneralUtility::makeInstance(GifBuilder::class);
         $gifBuilder->init();
         $gifBuilder->absPrefix = PATH_site;
 
@@ -77,30 +77,75 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper
 
         $options = $this->getConfigurationForImageCropScaleMask($targetFile, $gifBuilder);
 
+        $croppedImage = null;
+        if (!empty($configuration['crop'])) {
+
+            // check if it is a json object
+            $cropData = json_decode($configuration['crop']);
+            if ($cropData) {
+                $crop = implode(',', [(int)$cropData->x, (int)$cropData->y, (int)$cropData->width, (int)$cropData->height]);
+            } else {
+                $crop = $configuration['crop'];
+            }
+
+            list($offsetLeft, $offsetTop, $newWidth, $newHeight) = explode(',', $crop, 4);
+
+            $backupPrefix = $gifBuilder->filenamePrefix;
+            $gifBuilder->filenamePrefix = 'crop_';
+
+            // the result info is an array with 0=width,1=height,2=extension,3=filename
+            $result = $gifBuilder->imageMagickConvert(
+                $originalFileName,
+                '',
+                '',
+                '',
+                sprintf('-crop %dx%d+%d+%d', $newWidth, $newHeight, $offsetLeft, $offsetTop),
+                '',
+                ['noScale' => true],
+                true
+            );
+            $gifBuilder->filenamePrefix = $backupPrefix;
+
+            if ($result !== null) {
+                $originalFileName = $croppedImage = $result[3];
+            }
+        }
+
         // Normal situation (no masking)
         // Focus point image resizing does its own masking so it is disabled when additional masking options are set.
         if (!(is_array($configuration['maskImages']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['im'])) {
-            // Only use the focus point image resizing if it is enabled in the $TYPO3_CONF_VARS
-            if (isset($GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced']) && $GLOBALS['TYPO3_CONF_VARS']['GFX']['advanced'] > 0) {
-                // Ensure the service instance is instantiated with the TYPO3 CMS Object Manager
-                if ($this->focusAlgorithmService === null) {
-                    $this->focusAlgorithmService = GeneralUtility::makeInstance('Ishikawakun\\Falfocusarea\\Service\\FocusAlgorithmService');
-                }
-                // Get file metadata for further processing
-                $fileData = $sourceFile->getProperties();
-                // The result info is an array with 0=width,1=height,2=extension,3=filename
-                $result = $this->focusAlgorithmService->buildResult($originalFileName, $sourceFile, $targetFile, $configuration, $fileData);
+            // SVG
+            if ($croppedImage === null && $sourceFile->getExtension() === 'svg') {
+                $newDimensions = $this->getNewSvgDimensions($sourceFile, $configuration, $options, $gifBuilder);
+                $result = [
+                    0 => $newDimensions['width'],
+                    1 => $newDimensions['height'],
+                    3 => '' // no file = use original
+                ];
+
+                // all other images
             } else {
-                // the result info is an array with 0=width,1=height,2=extension,3=filename
-                $result = $gifBuilder->imageMagickConvert(
-                    $originalFileName,
-                    $configuration['fileExtension'],
-                    $configuration['width'],
-                    $configuration['height'],
-                    $configuration['additionalParameters'],
-                    $configuration['frame'],
-                    $options
-                );
+                if (true) {
+                    // Ensure the service instance is instantiated with the TYPO3 CMS Object Manager
+                    if ($this->focusAlgorithmService === null) {
+                        $this->focusAlgorithmService = GeneralUtility::makeInstance(FocusAlgorithmService::class);
+                    }
+                    // Get file metadata for further processing
+                    $fileData = $sourceFile->getProperties();
+                    // The result info is an array with 0=width,1=height,2=extension,3=filename
+                    $result = $this->focusAlgorithmService->buildResult($originalFileName, $sourceFile, $targetFile, $configuration, $fileData);
+                } else {
+                    // the result info is an array with 0=width,1=height,2=extension,3=filename
+                    $result = $gifBuilder->imageMagickConvert(
+                        $originalFileName,
+                        $configuration['fileExtension'],
+                        $configuration['width'],
+                        $configuration['height'],
+                        $configuration['additionalParameters'],
+                        $configuration['frame'],
+                        $options
+                    );
+                }
             }
         } else {
             $targetFileName = $this->getFilenameForImageCropScaleMask($task);
@@ -131,7 +176,7 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper
                     }
 
                     //	Scaling:	****
-                    $tempScale = array();
+                    $tempScale = [];
                     $command = '-geometry ' . $tempFileInfo[0] . 'x' . $tempFileInfo[1] . '!';
                     $command = $this->modifyImageMagickStripProfileParameters($command, $configuration);
                     $tmpStr = $gifBuilder->randomName();
@@ -164,18 +209,24 @@ class LocalCropScaleMaskHelperWithFocusArea extends LocalCropScaleMaskHelper
                 $result = $tempFileInfo;
             }
         }
-        // check if the processing really generated a new file
+
+        // check if the processing really generated a new file (scaled and/or cropped)
         if ($result !== null) {
-            if ($result[3] !== $originalFileName) {
-                $result = array(
+            if ($result[3] !== $originalFileName || $originalFileName === $croppedImage) {
+                $result = [
                     'width' => $result[0],
                     'height' => $result[1],
                     'filePath' => $result[3],
-                );
+                ];
             } else {
                 // No file was generated
                 $result = null;
             }
+        }
+
+        // Cleanup temp file if it isn't used as result
+        if ($croppedImage && ($result === null || $croppedImage !== $result['filePath'])) {
+            GeneralUtility::unlink_tempfile($croppedImage);
         }
 
         return $result;

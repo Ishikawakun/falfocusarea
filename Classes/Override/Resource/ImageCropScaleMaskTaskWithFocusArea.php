@@ -44,18 +44,18 @@ class ImageCropScaleMaskTaskWithFocusArea extends Resource\Processing\ImageCropS
         $fileMetaData = $this->getSourceFile()->getProperties();
 
         // Check focus area corners in metadata and fallback if necessary
-        $focusArea = array(
+        $focusAreaData = array(
             'focal_x_min' => isset($fileMetaData['focal_x_min']) ? $fileMetaData['focal_x_min'] : 0,
             'focal_x_max' => isset($fileMetaData['focal_x_max']) ? $fileMetaData['focal_x_max'] : 0,
             'focal_y_min' => isset($fileMetaData['focal_y_min']) ? $fileMetaData['focal_y_min'] : 0,
             'focal_y_max' => isset($fileMetaData['focal_y_max']) ? $fileMetaData['focal_y_max'] : 0,
-            'debug' => 3,
+            'debug' => filemtime(__FILE__),
         );
 
         // Return combined checksum
         return array_merge(
             parent::getChecksumData(),
-            array(serialize($focusArea))
+            array(serialize($focusAreaData))
         );
     }
 }
